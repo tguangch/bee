@@ -12,7 +12,7 @@
 // License for the specific language governing permissions and limitations
 // under the License.
 
-// Bee is a tool for developling applications based on beego framework.
+// Bee is a tool for developing applications based on beego framework.
 package main
 
 import (
@@ -25,7 +25,7 @@ import (
 	"text/template"
 )
 
-const version = "1.6.1"
+const version = "1.6.2"
 
 // Command is the unit of execution
 type Command struct {
@@ -89,7 +89,7 @@ func (c *Command) Usage() {
 }
 
 // Runnable reports whether the command can be run; otherwise
-// it is a documentation pseudo-command such as importpath.
+// it is a documentation pseudo-command such as import path.
 func (c *Command) Runnable() bool {
 	return c.Run != nil
 }
@@ -99,12 +99,7 @@ func (c *Command) Options() map[string]string {
 	c.Flag.VisitAll(func(f *flag.Flag) {
 		defaultVal := f.DefValue
 		if len(defaultVal) > 0 {
-			if strings.Contains(defaultVal, ":") {
-				// Truncate the flag's default value by appending '...' at the end
-				options[f.Name+"="+strings.Split(defaultVal, ":")[0]+":..."] = f.Usage
-			} else {
-				options[f.Name+"="+defaultVal] = f.Usage
-			}
+			options[f.Name+"="+defaultVal] = f.Usage
 		} else {
 			options[f.Name] = f.Usage
 		}
@@ -126,6 +121,7 @@ var availableCommands = []*Command{
 	//cmdRundocs,
 	cmdMigrate,
 	cmdFix,
+	cmdDockerize,
 }
 
 var logger = GetBeeLogger(os.Stdout)
@@ -164,7 +160,7 @@ func main() {
 
 			// Check if current directory is inside the GOPATH,
 			// if so parse the packages inside it.
-			if strings.Contains(currentpath, GetGOPATHs()[0]+"/src") {
+			if strings.Contains(currentpath, GetGOPATHs()[0]+"/src") && isGenerateDocs(cmd.Name(), args) {
 				parsePackagesFromDir(currentpath)
 			}
 
@@ -174,6 +170,18 @@ func main() {
 	}
 
 	printErrorAndExit("Unknown subcommand")
+}
+
+func isGenerateDocs(name string, args []string) bool {
+	if name != "generate" {
+		return false
+	}
+	for _, a := range args {
+		if a == "docs" {
+			return true
+		}
+	}
+	return false
 }
 
 var usageTemplate = `Bee is a Fast and Flexible tool for managing your Beego Web Application.
@@ -197,7 +205,9 @@ Use {{"bee help [topic]" | bold}} for more information about that topic.
 var helpTemplate = `{{"USAGE" | headline}}
   {{.UsageLine | printf "bee %s" | bold}}
 {{if .Options}}{{endline}}{{"OPTIONS" | headline}}{{range $k,$v := .Options}}
-  {{$k | printf "-%-12s" | bold}} {{$v}}{{end}}{{endline}}{{end}}
+  {{$k | printf "-%s" | bold}}
+      {{$v}}
+  {{end}}{{end}}
 {{"DESCRIPTION" | headline}}
   {{tmpltostr .Long . | trim}}
 `
